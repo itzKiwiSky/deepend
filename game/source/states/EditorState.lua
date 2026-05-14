@@ -113,12 +113,6 @@ function EditorState:enter()
         isObjectMode = false,
     }
 
-    --self.batches = {
-    --    ["glow"] = love.graphics.newSpriteBatch(self.tileBorder.img),
-    --    ["bg_sprite"] = love.graphics.newSpriteBatch(self.bgSprite),
-    --    ["glow_shadow"] = love.graphics.newSpriteBatch(self.tileBorderGlow.img),
-    --}
-
     -- store all the spritebatches --
     self.tilesetBatches = {}
     self.tilesetBatches["glow"] = newTilesetData(love.graphics.newSpriteBatch(self.tileBorder.img), {
@@ -152,9 +146,6 @@ function EditorState:enter()
     self.levelData:addLayer("tiles", "blocks")
     self.levelData:addLayer("objects", "objects")
 
-    -- show create level window --
-    self.registers.UIState.showCreateLevelWindow = not self.registers.isLevelLoaded
-
     loveframes.SetActiveSkin("Dark crimson")
 
     -- load all views --
@@ -165,7 +156,7 @@ function EditorState:enter()
     local views = love.filesystem.getDirectoryItems(base)
 
     for idx, path in ipairs(views) do
-        loveView.addView(string.format("%s/%s", base, path))
+        loveView.addView(base .. path)
     end
 end
 
@@ -174,18 +165,8 @@ function EditorState:draw()
 
     -- grid rendering --
     love.graphics.setBlendMode("replace")
-    love.graphics.setPointSize(3)
-    --drawGrid(self.levelData.properties.width, self.levelData.properties.height)
     love.graphics.draw(self.spriteGrid, 0, 0)
-    love.graphics.setPointSize(1)
     love.graphics.setBlendMode("alpha")
-
-    --rendering sprte tiles --
-    --love.graphics.draw(self.batches["bg_sprite"])
-    --love.graphics.draw(self.batches["glow_shadow"])
-    --love.graphics.setBlendMode("add")
-    --love.graphics.draw(self.batches["glow"])
-    --love.graphics.setBlendMode("alpha")
 
     for key, sprbatch in spairs(self.tilesetBatches) do
         love.graphics.setBlendMode(sprbatch.config.blendMode)
@@ -194,10 +175,9 @@ function EditorState:draw()
     end
 
 
-
     -- rendering objects --
     for idx, layer in ipairs(self.levelData.layers) do
-
+        -- later --
     end
 
 
@@ -247,7 +227,7 @@ function EditorState:update(elapsed)
         and self.mouseY >= 0
         and self.mouseY <= self.levelData.properties.height * EditorState.GRID_SIZE
         and self.registers.canPlace
-        and not self.registers.UIState.showCreateLevelWindow
+        and self.registers.isLevelLoaded
 
     -- block place --
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
