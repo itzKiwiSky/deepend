@@ -1,0 +1,17 @@
+todo
+
+[0.0.1 - DEMO]
+    [X] aumentar a velocidade do player X
+    [X] colisao com blocos
+    [X] adicionar tela de final de fase
+    [X] arrumar init instantaneo ao passar de fase
+    [*] musica de background
+    [X] Tela de morte
+    [X] tela de creditos
+
+
+atribuições
+    https://gamejolt.com/@Yoshoo
+    https://adamatomic.itch.io/mc-caves
+    https://ninjikin.itch.io/starter-tiles
+    https://piiixl.itch.io/1-bit-patterns-and-tiles
