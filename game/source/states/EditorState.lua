@@ -2,8 +2,9 @@ EditorState = {}
 
 local autoTile = require 'source.game.utils.Autotile'
 local levelData = require 'source.game.editor.LevelData'
+local newTilesetData = require 'source.game.views.TilesetData'
 
-local GRID_SIZE = 96
+EditorState.GRID_SIZE = 96
 
 ---Create a new spritegrid
 ---@param w number
@@ -48,20 +49,25 @@ local function floodFill(grid, startX, startY, targetValue, replaceValue)
     table.clear(queue)
 end
 
-local function updateBatches(self, currentSelectedLayer)
-    for key, batch in pairs(self.batches) do
-        batch:clear()
+function EditorState:updateBatches(currentSelectedLayer)
+    for key, tileset in pairs(self.tilesetBatches) do
+        tileset.batch:clear()
     end
 
     for y = 1, currentSelectedLayer.h, 1 do
         for x = 1, currentSelectedLayer.w, 1 do
             local currentTile = currentSelectedLayer.data[y][x]
             if currentTile then
-                local tx, ty = x * GRID_SIZE - GRID_SIZE, y * GRID_SIZE - GRID_SIZE
+                local tx, ty = x * EditorState.GRID_SIZE - EditorState.GRID_SIZE, y * EditorState.GRID_SIZE - EditorState.GRID_SIZE
                 local ct = autoTile.getFrame(currentSelectedLayer, x, y)
-                self.batches["glow"]:add(self.tileBorder.quads[ct + 1], tx, ty)
-                self.batches["glow_shadow"]:add(self.tileBorder.quads[ct + 1], tx, ty)
-                self.batches["bg_sprite"]:add(tx, ty)
+
+                for key, sprbatch in spairs(self.tilesetBatches) do
+                    if sprbatch.config.useQuads then
+                        sprbatch.batch:add(self.tileBorder.quads[ct + 1], tx, ty)
+                    else
+                        sprbatch.batch:add(tx, ty)
+                    end
+                end
             end
         end
     end
@@ -107,11 +113,22 @@ function EditorState:enter()
         isObjectMode = false,
     }
 
-    self.batches = {
-        ["glow"] = love.graphics.newSpriteBatch(self.tileBorder.img),
-        ["bg_sprite"] = love.graphics.newSpriteBatch(self.bgSprite),
-        ["glow_shadow"] = love.graphics.newSpriteBatch(self.tileBorderGlow.img),
-    }
+    --self.batches = {
+    --    ["glow"] = love.graphics.newSpriteBatch(self.tileBorder.img),
+    --    ["bg_sprite"] = love.graphics.newSpriteBatch(self.bgSprite),
+    --    ["glow_shadow"] = love.graphics.newSpriteBatch(self.tileBorderGlow.img),
+    --}
+
+    -- store all the spritebatches --
+    self.tilesetBatches = {}
+    self.tilesetBatches["glow"] = newTilesetData(love.graphics.newSpriteBatch(self.tileBorder.img), {
+        blendMode = "add",
+        useQuads = true,
+    })
+    self.tilesetBatches["block"] = newTilesetData(love.graphics.newSpriteBatch(self.bgSprite))
+    self.tilesetBatches["shadow"] = newTilesetData(love.graphics.newSpriteBatch(self.tileBorderGlow.img), {
+        useQuads = true
+    })
 
     self.levelData = levelData:new()
 
@@ -125,21 +142,13 @@ function EditorState:enter()
         normalizedH = 0
     }
 
-    -- create default layers --
-    --[[table.insert(self.levelData.layers, newLayer(
-        "tiles", "blocks",
-        self.levelData.properties.width, self.levelData.properties.height
-    ))
-    table.insert(self.levelData.layers, newLayer(
-        "objects", "objects"
-    ))]]
 
     self.spriteGrid = createGrid(
         self.levelData.properties.width,
         self.levelData.properties.height,
-        GRID_SIZE
+        EditorState.GRID_SIZE
     )
-
+    -- default layers --
     self.levelData:addLayer("tiles", "blocks")
     self.levelData:addLayer("objects", "objects")
 
@@ -172,11 +181,19 @@ function EditorState:draw()
     love.graphics.setBlendMode("alpha")
 
     --rendering sprte tiles --
-    love.graphics.draw(self.batches["bg_sprite"])
-    love.graphics.draw(self.batches["glow_shadow"])
-    love.graphics.setBlendMode("add")
-    love.graphics.draw(self.batches["glow"])
-    love.graphics.setBlendMode("alpha")
+    --love.graphics.draw(self.batches["bg_sprite"])
+    --love.graphics.draw(self.batches["glow_shadow"])
+    --love.graphics.setBlendMode("add")
+    --love.graphics.draw(self.batches["glow"])
+    --love.graphics.setBlendMode("alpha")
+
+    for key, sprbatch in spairs(self.tilesetBatches) do
+        love.graphics.setBlendMode(sprbatch.config.blendMode)
+        love.graphics.draw(sprbatch.batch)
+        love.graphics.setBlendMode("alpha")
+    end
+
+
 
     -- rendering objects --
     for idx, layer in ipairs(self.levelData.layers) do
@@ -194,14 +211,14 @@ function EditorState:draw()
         }
 
         love.graphics.setColor(toolTypeColor[self.toolState.isAddingTile and "pencil" or "eraser"])
-        love.graphics.rectangle("line", self.mouseX, self.mouseY, GRID_SIZE, GRID_SIZE)
+        love.graphics.rectangle("line", self.mouseX, self.mouseY, EditorState.GRID_SIZE, EditorState.GRID_SIZE)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.setLineWidth(1)
     end
 
     -- map bounds --
     love.graphics.setLineWidth(5)
-    love.graphics.rectangle("line", 0, 0, self.levelData.properties.width * GRID_SIZE, self.levelData.properties.height * GRID_SIZE)
+    love.graphics.rectangle("line", 0, 0, self.levelData.properties.width * EditorState.GRID_SIZE, self.levelData.properties.height * EditorState.GRID_SIZE)
     love.graphics.setLineWidth(1)
     love.graphics.setBlendMode("alpha")
 
@@ -215,8 +232,8 @@ function EditorState:update(elapsed)
 
     -- mouse updates --
     local mx, my = self.editorCam:worldCoords(vx, vy, 0, 0, shove.getViewportWidth(), shove.getViewportHeight())
-    self.mouseX = self.registers.useSnapToGrid and (math.floor(mx / GRID_SIZE) * GRID_SIZE) or mx
-    self.mouseY = self.registers.useSnapToGrid and (math.floor(my / GRID_SIZE) * GRID_SIZE) or my
+    self.mouseX = self.registers.useSnapToGrid and (math.floor(mx / EditorState.GRID_SIZE) * EditorState.GRID_SIZE) or mx
+    self.mouseY = self.registers.useSnapToGrid and (math.floor(my / EditorState.GRID_SIZE) * EditorState.GRID_SIZE) or my
 
     loveView.update(elapsed)
     self.registers.canPlace = not loveframes.GetHover()
@@ -226,15 +243,15 @@ function EditorState:update(elapsed)
     self.editorCam.scale = self.editorCam.scrollZoom
 
     self.mouseUse = self.mouseX >= 0
-        and self.mouseX <= self.levelData.properties.width * GRID_SIZE
+        and self.mouseX <= self.levelData.properties.width * EditorState.GRID_SIZE
         and self.mouseY >= 0
-        and self.mouseY <= self.levelData.properties.height * GRID_SIZE
+        and self.mouseY <= self.levelData.properties.height * EditorState.GRID_SIZE
         and self.registers.canPlace
         and not self.registers.UIState.showCreateLevelWindow
 
     -- block place --
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
-    local cx, cy = math.floor(mx / GRID_SIZE) + 1, math.floor(my / GRID_SIZE) + 1
+    local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
 
     if not self.toolState.fillmode then
         if love.mouse.isDown(1) and self.mouseUse and not currentSelectedLayer.locked then
@@ -242,14 +259,14 @@ function EditorState:update(elapsed)
                 currentSelectedLayer.data[cy][cx] = true
             end
 
-            updateBatches(self, currentSelectedLayer)
+            self:updateBatches(currentSelectedLayer)
             self.toolState.isAddingTile = true
         elseif love.mouse.isDown(2) and self.mouseUse and not currentSelectedLayer.locked then
             if currentSelectedLayer:inBounds(cx, cy) then
                 currentSelectedLayer.data[cy][cx] = false
             end
 
-            updateBatches(self, currentSelectedLayer)
+            self:updateBatches(currentSelectedLayer)
         end
     end
 
@@ -268,7 +285,7 @@ function EditorState:mousepressed(x, y, button)
     local mx, my = self.editorCam:worldCoords(vx, vy, 0, 0, shove.getViewportWidth(), shove.getViewportHeight())
 
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
-    local cx, cy = math.floor(mx / GRID_SIZE) + 1, math.floor(my / GRID_SIZE) + 1
+    local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
 
     if self.toolState.fillmode and self.mouseUse then
         local modes = {
@@ -284,7 +301,7 @@ function EditorState:mousepressed(x, y, button)
             modes[button]()
         end
     end
-    updateBatches(self, currentSelectedLayer)
+    self:updateBatches(currentSelectedLayer)
 end
 
 function EditorState:wheelmoved(x, y)

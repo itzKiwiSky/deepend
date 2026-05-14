@@ -1,5 +1,7 @@
 package.loaded["source.game.utils.Shared"] = nil
 local shared = require("source.game.utils.Shared")
+local levelData = require 'source.game.editor.LevelData'
+local createGrid = require 'source.game.editor.LevelGrid'
 
 local function createLabeledInput(new, elements, grid, fonts, inputType, labelText, yPos, targetTable, targetKey, options)
     local paddingText = 2
@@ -117,6 +119,7 @@ return function(new)
     local font = assetManager.getFont("pixel_font", 20)
     local fontInput = assetManager.getFont("pixel_font", 16)
     local elements = {}
+    local tempLevelData = levelData:new()
 
 
     local frame = new("frame")
@@ -126,8 +129,19 @@ return function(new)
     frame:Center()
     frame:SetAlwaysUpdate(true)
     frame:SetHover(true)
+    --frame:SetProperty("triggeredVisible", false)
+    frame:SetProperty("lastState", frame:GetVisible())
+    frame:SetProperty("OnFrameVisible", function()
+        tempLevelData = levelData:new()
+    end)
     frame.Update = function(this)
         frame:SetVisible(EditorState.registers.UIState.showCreateLevelWindow)
+
+        if this:GetVisible() ~= this:GetProperty("lastState") then
+            print("window invisible")
+            this:SetProperty("lastState", this:GetVisible())
+            this:GetProperty("OnFrameVisible")()
+        end
     end
 
     local gridSize = 14
@@ -156,13 +170,57 @@ return function(new)
     --createLabeledInput(new, elements, grid, fonts, "numberbox", "Start song", 23, tempSong.meta, "songStartOffset")
     --createLabeledInput(new, elements, grid, fonts, "numberbox", "Lanes", 26, tempSong.meta, "laneCount", { defaultValue = 1, min = 1, max = 9 })
 
+    createLabeledInput(new, elements, grid, fonts, "textinput", "Name", 2, tempLevelData, "levelName")
+    createLabeledInput(new, elements, grid, fonts, "numberbox", "Width", 5, tempLevelData.properties, "width", { defaultValue = 20, min = 1, max = 999 })
+    createLabeledInput(new, elements, grid, fonts, "numberbox", "Height", 8, tempLevelData.properties, "height", { defaultValue = 40, min = 1, max = 999 })
+    createLabeledInput(new, elements, grid, fonts, "numberbox", "Gravity", 11, tempLevelData.properties, "gravity", { defaultValue = 0.125, min = 0.065, max = 5 })
+    --createLabeledInput(new, elements, grid, fonts, "textinput", "Level name", 14, tempLevelData.level, "levelName")
+
+    local function createLevel()
+        EditorState.registers.UIState.showCreateLevelWindow = false
+        EditorState.registers.isLevelLoaded = true
+        EditorState.levelData = tempLevelData
+        EditorState.levelData:addLayer("tiles", "blocks")
+        EditorState.levelData:addLayer("objects", "objects")
+
+        -- update grid sprite --
+        EditorState.spriteGrid = createGrid(
+            tempLevelData.properties.width,
+            tempLevelData.properties.height,
+            EditorState.GRID_SIZE
+        )
+
+        for idx, layer in ipairs(tempLevelData.layers) do
+            EditorState:updateBatches(layer)
+        end
+
+        -- reset to a blank state --
+        local d = levelData:new()
+        tempLevelData = d
+    end
+
     local buttonConfirm = new("button")
     buttonConfirm:SetText("Create")
     buttonConfirm:SetSize(64, 28)
     buttonConfirm:SetHover(true)
     buttonConfirm.OnClick = function(this)
-        EditorState.registers.UIState.showCreateLevelWindow = false
-        --EditorState.song = tempSong
+        if EditorState.registers.isLevelLoaded then
+            local msgButtons = {
+                "Yes",
+                "Cancel"
+            }
+            local msg = love.window.showMessageBox("Warning", "All the level data erased. Are you sure you want to continue?", msgButtons, "warning")
+
+            if msg == 0 or msg == 2 then
+                EditorState.registers.UIState.showCreateLevelWindow = false
+                local d = levelData:new()
+                tempLevelData = d
+            else
+                createLevel()
+            end
+        else
+            createLevel()
+        end
     end
     grid:AddItem(buttonConfirm, 31, 18, "left")
 
@@ -173,6 +231,8 @@ return function(new)
     buttonCancel.OnClick = function(this)
         if EditorState.registers.isLevelLoaded then
             EditorState.registers.UIState.showCreateLevelWindow = false
+            local d = levelData:new()
+            tempLevelData = d
         else
             gamestate.pop()
         end

@@ -24,6 +24,10 @@ function LevelData:__construct()
     self.layers = {}
 end
 
+function LevelData:serialize()
+
+end
+
 ---Add a new layer on the editor --
 ---@param type Layer.LayerType
 ---@param layerName string
