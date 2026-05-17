@@ -90,6 +90,7 @@ function EditorState:enter()
     self.registers = {
         UIState = {
             showCreateLevelWindow = false,
+            showCreateLayerWindow = false
         },
         isLevelLoaded = false,
         isUIShowing = false,
@@ -157,11 +158,11 @@ function EditorState:enter()
     loveView.unloadView()
     loveView.registerLoveframesEvents()
 
-    local base = "source/game/views/"
-    local views = love.filesystem.getDirectoryItems(base)
+    local base = "source/game/views"
+    local views = fsutil.scanFolder(base)
 
     for idx, path in ipairs(views) do
-        loveView.addView(base .. path)
+        loveView.addView(path)
     end
 end
 

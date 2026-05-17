@@ -1,5 +1,5 @@
 package.loaded["source.game.utils.Shared"] = nil
-local shared = require("source.game.utils.Shared")
+local shared = require 'source.game.utils.Shared'
 
 local buttons = assetManager.getImage("ui_actions_button")
 local buttonQuads = love.graphics.getQuadsFromAtlas(buttons, 8, 1)
@@ -105,7 +105,7 @@ return function(new)
         local text = new("text")
         text:SetDefaultColor(1, 1, 1, 1)
         text:SetFont(font)
-        text:SetText(layerData.name)
+        text:SetText(string.format("[%s] %s", idx, layerData.name))
         text:SetParent(panel)
         table.insert(panel.children, text)
         listGrid:AddItem(text, 2, 2, "left")

@@ -1,5 +1,5 @@
 package.loaded["source.game.utils.Shared"] = nil
-local shared = require("source.game.utils.Shared")
+local shared = require 'source.game.utils.Shared'
 
 local font = assetManager.getFont("pixel_font", 18)
 

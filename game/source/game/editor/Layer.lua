@@ -16,6 +16,8 @@ function Layer.new(type, layerName, w, h)
         name = layerName,
         type = type or "tiles",
 
+        z = 0,
+
         visible = true,
         locked = false,
 

@@ -22,7 +22,13 @@ function LevelDataUtils.clearLayers(levelData)
 end
 
 function LevelDataUtils.addLayer(levelData, layer)
-    table.insert(levelData.layers, layer)
+    layer.z = #levelData.layers + 1
+    levelData.layers[layer.z] = layer
+
+    -- sort  the layer --
+    table.sort(levelData.layers, function(a, b)
+        return a.z < b.z
+    end)
 end
 
 return LevelDataUtils

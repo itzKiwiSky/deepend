@@ -1,5 +1,6 @@
 package.loaded["source.game.utils.Shared"] = nil
-local shared = require("source.game.utils.Shared")
+local shared = require 'source.game.utils.Shared'
+
 local editorGrid = require 'source.game.editor.LevelGrid'
 local LevelDataUtils = require 'source.game.editor.LevelDataUtils'
 local layerUtils = require 'source.game.editor.LayerUtils'
