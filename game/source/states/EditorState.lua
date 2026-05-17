@@ -52,18 +52,20 @@ function EditorState:updateBatches(currentSelectedLayer)
         tileset.batch:clear()
     end
 
-    for y = 1, currentSelectedLayer.h, 1 do
-        for x = 1, currentSelectedLayer.w, 1 do
-            local currentTile = currentSelectedLayer.data[y][x]
-            if currentTile then
-                local tx, ty = x * EditorState.GRID_SIZE - EditorState.GRID_SIZE, y * EditorState.GRID_SIZE - EditorState.GRID_SIZE
-                local ct = autoTile.getFrame(currentSelectedLayer, x, y)
+    if currentSelectedLayer.type == "tiles" then
+        for y = 1, currentSelectedLayer.h, 1 do
+            for x = 1, currentSelectedLayer.w, 1 do
+                local currentTile = currentSelectedLayer.data[y][x]
+                if currentTile then
+                    local tx, ty = x * EditorState.GRID_SIZE - EditorState.GRID_SIZE, y * EditorState.GRID_SIZE - EditorState.GRID_SIZE
+                    local ct = autoTile.getFrame(currentSelectedLayer, x, y)
 
-                for key, sprbatch in spairs(self.tilesetBatches) do
-                    if sprbatch.config.useQuads then
-                        sprbatch.batch:add(self.tileBorder.quads[ct + 1], tx, ty)
-                    else
-                        sprbatch.batch:add(tx, ty)
+                    for key, sprbatch in spairs(self.tilesetBatches) do
+                        if sprbatch.config.useQuads then
+                            sprbatch.batch:add(self.tileBorder.quads[ct + 1], tx, ty)
+                        else
+                            sprbatch.batch:add(tx, ty)
+                        end
                     end
                 end
             end
@@ -231,7 +233,7 @@ function EditorState:update(elapsed)
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
     local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
 
-    if not self.toolState.fillmode then
+    if not self.toolState.fillmode and currentSelectedLayer.type == "tiles" then
         if love.mouse.isDown(1) and self.mouseUse and not currentSelectedLayer.locked then
             if layerUtils.inBounds(currentSelectedLayer, cx, cy) then
                 currentSelectedLayer.data[cy][cx] = true
@@ -265,7 +267,7 @@ function EditorState:mousepressed(x, y, button)
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
     local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
 
-    if self.toolState.fillmode and self.mouseUse then
+    if self.toolState.fillmode and self.mouseUse and currentSelectedLayer.type == "tiles" then
         local modes = {
             [1] = function()
                 floodFill(currentSelectedLayer.data, cx, cy, false, true)
@@ -278,8 +280,8 @@ function EditorState:mousepressed(x, y, button)
         if modes[button] then
             modes[button]()
         end
+        self:updateBatches(currentSelectedLayer)
     end
-    self:updateBatches(currentSelectedLayer)
 end
 
 function EditorState:wheelmoved(x, y)

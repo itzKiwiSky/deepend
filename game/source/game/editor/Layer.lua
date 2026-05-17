@@ -39,7 +39,6 @@ function Layer.new(type, layerName, w, h)
         ["tiles"] = function()
             for y = 1, h do
                 layer.data[y] = {}
-
                 for x = 1, w do
                     layer.data[y][x] = false
                 end

@@ -5,6 +5,27 @@ local LevelDataUtils = require 'source.game.editor.LevelDataUtils'
 local layerUtils = require 'source.game.editor.LayerUtils'
 local layer = require 'source.game.editor.Layer'
 
+local function deepCopy(orig, copies)
+    copies = copies or {}
+
+    if type(orig) ~= "table" then
+        return orig
+    end
+
+    if copies[orig] then
+        return copies[orig]
+    end
+
+    local copy = {}
+    copies[orig] = copy
+
+    for k, v in pairs(orig) do
+        copy[deepCopy(k, copies)] = deepCopy(v, copies)
+    end
+
+    return copy
+end
+
 local function addShowHideEvents(element, callbacks)
     -- Inicializa o state anterior
     element:SetProperty("_wasVisible", element:GetVisible())
@@ -93,7 +114,7 @@ local function createLabeledInput(new, elements, grid, fonts, inputType, labelTe
             addedElements["checkbox"] = checkbox
         end,
         ["numberbox"] = function()
-            -- Im gonna make my onw bc the lf numberbox sucks --
+            -- Im gonna make my own bc the lf numberbox sucks --
             local function updateNumberboxText(text)
                 text:SetText(text:GetProperty("count"))
                 targetTable[targetKey] = tonumber(text:GetText())
@@ -103,11 +124,39 @@ local function createLabeledInput(new, elements, grid, fonts, inputType, labelTe
             numberbox:SetProperty("count", options.defaultValue)
             numberbox:SetSize(64, addedElements["text"]:GetHeight())
             numberbox:SetFont(fonts.input)
-            numberbox:SetText("")
+            numberbox:SetText(tostring(options.defaultValue))
             numberbox:SetHover(true)
             numberbox:SetUsable({ "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", ".", "-" })
             numberbox:SetAlwaysUpdate(true)
+
+            -- Track previous text to detect user input changes
+            numberbox:SetProperty("_lastText", tostring(options.defaultValue))
+
             local size = addedElements["text"]:GetHeight()
+
+            local function syncCountFromDisplay()
+                local currentText = numberbox:GetValue()
+
+                -- If empty or just "-", reset to min
+                if currentText == "" or currentText == "-" then
+                    numberbox:SetProperty("count", options.min)
+                else
+                    -- Try to parse as number
+                    local value = tonumber(currentText)
+                    if value ~= nil then
+                        -- Clamp to min/max
+                        if value < options.min then
+                            value = options.min
+                        elseif value > options.max then
+                            value = options.max
+                        end
+                        numberbox:SetProperty("count", value)
+                    end
+                end
+
+                -- Update the table with the new value
+                targetTable[targetKey] = numberbox:GetProperty("count")
+            end
 
             local addNumberButton = new("button")
             addNumberButton:SetText("+")
@@ -135,11 +184,27 @@ local function createLabeledInput(new, elements, grid, fonts, inputType, labelTe
                 updateNumberboxText(numberbox)
             end
 
+            -- Add Update function to sync typed values
+            local previousUpdate = numberbox.Update
+            numberbox.Update = function(this, elapsed)
+                if previousUpdate then
+                    previousUpdate(this, elapsed)
+                end
+
+                local currentText = this:GetValue()
+                local lastText = this:GetProperty("_lastText") or ""
+
+                -- Only process if text changed
+                if currentText ~= lastText then
+                    this:SetProperty("_lastText", currentText)
+                    -- Sync count property but DON'T update display during typing
+                    syncCountFromDisplay()
+                end
+            end
+
             grid:AddItem(numberbox, yPos, paddingInput + 2, "left")
             grid:AddItem(subNumberButton, yPos, paddingInput, "left")
             grid:AddItem(addNumberButton, yPos, paddingInput + 7, "left")
-
-            updateNumberboxText(numberbox)
 
             addedElements["numberbox"] = {
                 add = addNumberButton,
@@ -170,21 +235,22 @@ return function(new)
         frame:SetVisible(EditorState.registers.UIState.showCreateLevelWindow)
     end
 
+    local function reset()
+        tempLevelData.levelName = ""
+        tempLevelData.properties.width = 20
+        tempLevelData.properties.height = 40
+        tempLevelData.properties.gravity = 0.125
+
+        -- Reseta os layers
+        tempLevelData.layers = {}
+    end
+
     addShowHideEvents(frame, {
         OnShow = function(self)
-            -- Seu código aqui
-            -- Resetar os valores ao invés de criar um novo objeto
-            tempLevelData.levelName = ""
-            tempLevelData.properties.width = 20
-            tempLevelData.properties.height = 40
-            tempLevelData.properties.gravity = 0.125
-
-            -- Reseta os layers
-            tempLevelData.layers = {}
+            reset()
         end,
         OnHide = function(self)
-            -- Seu código aqui
-            print("delete")
+            reset()
         end
     })
 
@@ -218,7 +284,7 @@ return function(new)
         )
         LevelDataUtils.addLayer(tempLevelData, layer.new("objects", "objects"))
 
-        EditorState.levelData = table.deepclone(tempLevelData)
+        EditorState.levelData = deepCopy(tempLevelData)
 
         -- update grid sprite --
         editorGrid.newGrid(
@@ -227,14 +293,16 @@ return function(new)
             EditorState.GRID_SIZE
         )
 
-        for idx, layer in ipairs(tempLevelData.layers) do
-            if layer.type == "tiles" then
-                EditorState:updateBatches(layer)
+        -- updat sprite batches --
+        for idx, l in ipairs(tempLevelData.layers) do
+            if l.type == "tiles" then
+                EditorState:updateBatches(l)
             end
         end
         EditorState.registers.isLevelLoaded = true
 
         -- close window --
+        loveView.reloadAll()
         EditorState.registers.UIState.showCreateLevelWindow = false
     end
 
@@ -267,8 +335,6 @@ return function(new)
     buttonCancel.OnClick = function(this)
         if EditorState.registers.isLevelLoaded then
             EditorState.registers.UIState.showCreateLevelWindow = false
-            tempLevelData = nil
-            tempLevelData = levelData:new()
         else
             gamestate.pop()
         end

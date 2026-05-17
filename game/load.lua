@@ -25,6 +25,7 @@ return function()
     newImage("tile_bg", "game/tilesets/block_deco.png")
 
     newImage("ui_actions_button", "ui/icons_buttons.png")
+    newImage("ui_lock", "ui/lock.png")
 
     newFont("pixel_font", "pixel_font.ttf")
     newFont("pixel_font_bold", "pixel_font_bold.ttf")
