@@ -1,8 +1,8 @@
 [package]
-name = "Synapse"
-display_name = "Synapse"
+name = "The Deep End"
+display_name = "The Deep End"
 description = ""
-author = "BeatWise"
+author = "Cloudy"
 version = "0.0.1"
 icon = "game/icon.png"
 

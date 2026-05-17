@@ -62,9 +62,9 @@ function EditorState:updateBatches(currentSelectedLayer)
 
                     for key, sprbatch in spairs(self.tilesetBatches) do
                         if sprbatch.config.useQuads then
-                            sprbatch.batch:add(self.tileBorder.quads[ct + 1], tx, ty)
+                            sprbatch.batch:add(self.tileBorder.quads[ct + 1], tx, ty, sprbatch.config.rotation, sprbatch.config.scaleX, sprbatch.config.scaleY)
                         else
-                            sprbatch.batch:add(tx, ty)
+                            sprbatch.batch:add(tx, ty, sprbatch.config.rotation, sprbatch.config.scaleX, sprbatch.config.scaleY)
                         end
                     end
                 end
@@ -95,6 +95,8 @@ function EditorState:enter()
         isUIShowing = false,
         canPlace = true,
         useSnapToGrid = true,
+        updateObjectBehaviour = true,
+        drawObjectPath = true,
     }
 
     self.editorCam = camera()
@@ -119,7 +121,10 @@ function EditorState:enter()
         blendMode = "add",
         useQuads = true,
     })
-    self.tilesetBatches["block"] = newTilesetData(love.graphics.newSpriteBatch(self.bgSprite))
+    self.tilesetBatches["block"] = newTilesetData(love.graphics.newSpriteBatch(self.bgSprite), {
+        scaleX = 96 / self.bgSprite:getWidth(),
+        scaleY = 96 / self.bgSprite:getHeight()
+    })
     self.tilesetBatches["shadow"] = newTilesetData(love.graphics.newSpriteBatch(self.tileBorderGlow.img), {
         useQuads = true
     })
@@ -176,8 +181,14 @@ function EditorState:draw()
 
 
     -- rendering objects --
-    for idx, layer in ipairs(self.levelData.layers) do
-        -- later --
+    for idx, layerData in ipairs(self.levelData.layers) do
+        if layerData.type == "objects" then
+            for _, object in ipairs(layerData.data) do
+                if object.draw then
+                    object:draw()
+                end
+            end
+        end
     end
 
 
@@ -229,6 +240,17 @@ function EditorState:update(elapsed)
         and self.registers.canPlace
         and self.registers.isLevelLoaded
 
+    -- updateing objects behaviours --
+    for idx, layerData in ipairs(self.levelData.layers) do
+        if layerData.type == "objects" and self.registers.updateObjectBehaviour then
+            for _, object in ipairs(layerData.data) do
+                if object.update then
+                    object:update(elapsed)
+                end
+            end
+        end
+    end
+
     -- block place --
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
     local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
@@ -251,11 +273,11 @@ function EditorState:update(elapsed)
     end
 
     -- zoom clamp --
-    if self.editorCam.targetZoom < 0.25 then
-        self.editorCam.targetZoom = 0.25
+    if self.editorCam.targetZoom < 0.15 then
+        self.editorCam.targetZoom = 0.15
     end
-    if self.editorCam.targetZoom > 3 then
-        self.editorCam.targetZoom = 3
+    if self.editorCam.targetZoom > 3.5 then
+        self.editorCam.targetZoom = 3.5
     end
 end
 
@@ -267,7 +289,7 @@ function EditorState:mousepressed(x, y, button)
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
     local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
 
-    if self.toolState.fillmode and self.mouseUse and currentSelectedLayer.type == "tiles" then
+    if self.toolState.fillmode and self.mouseUse and currentSelectedLayer.type == "tiles" and not currentSelectedLayer.locked then
         local modes = {
             [1] = function()
                 floodFill(currentSelectedLayer.data, cx, cy, false, true)
@@ -285,7 +307,6 @@ function EditorState:mousepressed(x, y, button)
 end
 
 function EditorState:wheelmoved(x, y)
-    --print(x, y)
     if y < 0 then
         self.editorCam.targetZoom = self.editorCam.targetZoom - 0.05
     end

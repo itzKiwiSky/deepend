@@ -156,19 +156,19 @@ return function(new)
     end
 
 
-    addButton(new, grid, 5, 1, function()
+    addButton(new, grid, 5, 1, function() -- add
 
     end)
 
-    addButton(new, grid, 6, 2, function()
+    addButton(new, grid, 6, 2, function() -- move UP
 
     end)
 
-    addButton(new, grid, 7, 3, function()
+    addButton(new, grid, 7, 3, function() -- move DOWN
 
     end)
 
-    addButton(new, grid, 8, 4, function()
+    addButton(new, grid, 8, 4, function() -- remove
 
     end)
 end
