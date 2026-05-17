@@ -1,7 +1,44 @@
 package.loaded["source.game.utils.Shared"] = nil
 local shared = require("source.game.utils.Shared")
-local levelData = require 'source.game.editor.LevelData'
-local createGrid = require 'source.game.editor.LevelGrid'
+local editorGrid = require 'source.game.editor.LevelGrid'
+local LevelDataUtils = require 'source.game.editor.LevelDataUtils'
+local layerUtils = require 'source.game.editor.LayerUtils'
+local layer = require 'source.game.editor.Layer'
+
+local function addShowHideEvents(element, callbacks)
+    -- Inicializa o state anterior
+    element:SetProperty("_wasVisible", element:GetVisible())
+
+    -- Guarda o Update anterior
+    local previousUpdate = element.Update
+
+    -- Cria um novo Update que rastreia visibilidade
+    element.Update = function(self, elapsed)
+        -- Executa o Update anterior se existir
+        if previousUpdate then
+            previousUpdate(self, elapsed)
+        end
+
+        -- Rastreia mudanças de visibilidade
+        local wasVisible = self:GetProperty("_wasVisible") or false
+        local isVisible = self:GetVisible()
+
+        -- Detecta transição invisível → visível
+        if not wasVisible and isVisible then
+            self:SetProperty("_wasVisible", true)
+            if callbacks and callbacks.OnShow then
+                callbacks.OnShow(self)
+            end
+
+            -- Detecta transição visível → invisível
+        elseif wasVisible and not isVisible then
+            self:SetProperty("_wasVisible", false)
+            if callbacks and callbacks.OnHide then
+                callbacks.OnHide(self)
+            end
+        end
+    end
+end
 
 local function createLabeledInput(new, elements, grid, fonts, inputType, labelText, yPos, targetTable, targetKey, options)
     local paddingText = 2
@@ -119,8 +156,7 @@ return function(new)
     local font = assetManager.getFont("pixel_font", 20)
     local fontInput = assetManager.getFont("pixel_font", 16)
     local elements = {}
-    local tempLevelData = levelData:new()
-
+    local tempLevelData = LevelDataUtils.newLevelData()
 
     local frame = new("frame")
     frame:SetSize(320, 480)
@@ -130,19 +166,27 @@ return function(new)
     frame:SetAlwaysUpdate(true)
     frame:SetHover(true)
     --frame:SetProperty("triggeredVisible", false)
-    frame:SetProperty("lastState", frame:GetVisible())
-    frame:SetProperty("OnFrameVisible", function()
-        tempLevelData = levelData:new()
-    end)
     frame.Update = function(this)
         frame:SetVisible(EditorState.registers.UIState.showCreateLevelWindow)
-
-        if this:GetVisible() ~= this:GetProperty("lastState") then
-            print("window invisible")
-            this:SetProperty("lastState", this:GetVisible())
-            this:GetProperty("OnFrameVisible")()
-        end
     end
+
+    addShowHideEvents(frame, {
+        OnShow = function(self)
+            -- Seu código aqui
+            -- Resetar os valores ao invés de criar um novo objeto
+            tempLevelData.levelName = ""
+            tempLevelData.properties.width = 20
+            tempLevelData.properties.height = 40
+            tempLevelData.properties.gravity = 0.125
+
+            -- Reseta os layers
+            tempLevelData.layers = {}
+        end,
+        OnHide = function(self)
+            -- Seu código aqui
+            print("delete")
+        end
+    })
 
     local gridSize = 14
     local grid = new("grid")
@@ -160,43 +204,38 @@ return function(new)
         input = fontInput
     }
 
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Song title", 2, tempSong.meta, "title")
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Artist", 5, tempSong.meta, "artist")
-    --createLabeledInput(new, elements, grid, fonts, "numberbox", "BPM", 8, tempSong.meta, "bpm", { defaultValue = 100, min = 10, max = 999 })
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Description", 11, tempSong.meta, "description")
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Tags", 14, tempSong.meta, "tags")
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Charter", 17, tempSong.meta, "mapper")
-    --createLabeledInput(new, elements, grid, fonts, "checkbox", "scripted events", 20, tempSong.meta.flags, "scriptedEvents")
-    --createLabeledInput(new, elements, grid, fonts, "numberbox", "Start song", 23, tempSong.meta, "songStartOffset")
-    --createLabeledInput(new, elements, grid, fonts, "numberbox", "Lanes", 26, tempSong.meta, "laneCount", { defaultValue = 1, min = 1, max = 9 })
-
     createLabeledInput(new, elements, grid, fonts, "textinput", "Name", 2, tempLevelData, "levelName")
     createLabeledInput(new, elements, grid, fonts, "numberbox", "Width", 5, tempLevelData.properties, "width", { defaultValue = 20, min = 1, max = 999 })
     createLabeledInput(new, elements, grid, fonts, "numberbox", "Height", 8, tempLevelData.properties, "height", { defaultValue = 40, min = 1, max = 999 })
     createLabeledInput(new, elements, grid, fonts, "numberbox", "Gravity", 11, tempLevelData.properties, "gravity", { defaultValue = 0.125, min = 0.065, max = 5 })
-    --createLabeledInput(new, elements, grid, fonts, "textinput", "Level name", 14, tempLevelData.level, "levelName")
 
     local function createLevel()
-        EditorState.registers.UIState.showCreateLevelWindow = false
-        EditorState.registers.isLevelLoaded = true
-        EditorState.levelData = tempLevelData
-        EditorState.levelData:addLayer("tiles", "blocks")
-        EditorState.levelData:addLayer("objects", "objects")
+        LevelDataUtils.addLayer(tempLevelData,
+            layer.new("tiles", "blocks",
+                tempLevelData.properties.width,
+                tempLevelData.properties.height
+            )
+        )
+        LevelDataUtils.addLayer(tempLevelData, layer.new("objects", "objects"))
+
+        EditorState.levelData = table.deepclone(tempLevelData)
 
         -- update grid sprite --
-        EditorState.spriteGrid = createGrid(
+        editorGrid.newGrid(
             tempLevelData.properties.width,
             tempLevelData.properties.height,
             EditorState.GRID_SIZE
         )
 
         for idx, layer in ipairs(tempLevelData.layers) do
-            EditorState:updateBatches(layer)
+            if layer.type == "tiles" then
+                EditorState:updateBatches(layer)
+            end
         end
+        EditorState.registers.isLevelLoaded = true
 
-        -- reset to a blank state --
-        local d = levelData:new()
-        tempLevelData = d
+        -- close window --
+        EditorState.registers.UIState.showCreateLevelWindow = false
     end
 
     local buttonConfirm = new("button")
@@ -210,11 +249,8 @@ return function(new)
                 "Cancel"
             }
             local msg = love.window.showMessageBox("Warning", "All the level data erased. Are you sure you want to continue?", msgButtons, "warning")
-
             if msg == 0 or msg == 2 then
                 EditorState.registers.UIState.showCreateLevelWindow = false
-                local d = levelData:new()
-                tempLevelData = d
             else
                 createLevel()
             end
@@ -231,8 +267,8 @@ return function(new)
     buttonCancel.OnClick = function(this)
         if EditorState.registers.isLevelLoaded then
             EditorState.registers.UIState.showCreateLevelWindow = false
-            local d = levelData:new()
-            tempLevelData = d
+            tempLevelData = nil
+            tempLevelData = levelData:new()
         else
             gamestate.pop()
         end

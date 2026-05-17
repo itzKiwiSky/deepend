@@ -1,16 +1,14 @@
 EditorState = {}
 
 local autoTile = require 'source.game.utils.Autotile'
-local levelData = require 'source.game.editor.LevelData'
-local newTilesetData = require 'source.game.views.TilesetData'
+local newTilesetData = require 'source.game.utils.TilesetData'
+local LevelDataUtils = require 'source.game.editor.LevelDataUtils'
+local layerUtils = require 'source.game.editor.LayerUtils'
+local layer = require 'source.game.editor.Layer'
 
 EditorState.GRID_SIZE = 96
 
----Create a new spritegrid
----@param w number
----@param h number
----@return love.Image
-local createGrid = require 'source.game.editor.LevelGrid'
+local editorGrid = require 'source.game.editor.LevelGrid'
 
 ---Used to fill a area of a grid
 ---@param grid table<table<number>>
@@ -124,7 +122,7 @@ function EditorState:enter()
         useQuads = true
     })
 
-    self.levelData = levelData:new()
+    self.levelData = LevelDataUtils.newLevelData()
 
     self.selectionArea = {
         visible = false,
@@ -137,14 +135,14 @@ function EditorState:enter()
     }
 
 
-    self.spriteGrid = createGrid(
+    editorGrid.newGrid(
         self.levelData.properties.width,
         self.levelData.properties.height,
         EditorState.GRID_SIZE
     )
     -- default layers --
-    self.levelData:addLayer("tiles", "blocks")
-    self.levelData:addLayer("objects", "objects")
+    LevelDataUtils.addLayer(self.levelData, layer.new("tiles", "blocks", self.levelData.properties.width, self.levelData.properties.height))
+    LevelDataUtils.addLayer(self.levelData, layer.new("objects", "objects"))
 
     loveframes.SetActiveSkin("Dark crimson")
 
@@ -165,7 +163,7 @@ function EditorState:draw()
 
     -- grid rendering --
     love.graphics.setBlendMode("replace")
-    love.graphics.draw(self.spriteGrid, 0, 0)
+    editorGrid.draw()
     love.graphics.setBlendMode("alpha")
 
     for key, sprbatch in spairs(self.tilesetBatches) do
@@ -235,14 +233,14 @@ function EditorState:update(elapsed)
 
     if not self.toolState.fillmode then
         if love.mouse.isDown(1) and self.mouseUse and not currentSelectedLayer.locked then
-            if currentSelectedLayer:inBounds(cx, cy) then
+            if layerUtils.inBounds(currentSelectedLayer, cx, cy) then
                 currentSelectedLayer.data[cy][cx] = true
             end
 
             self:updateBatches(currentSelectedLayer)
             self.toolState.isAddingTile = true
         elseif love.mouse.isDown(2) and self.mouseUse and not currentSelectedLayer.locked then
-            if currentSelectedLayer:inBounds(cx, cy) then
+            if layerUtils.inBounds(currentSelectedLayer, cx, cy) then
                 currentSelectedLayer.data[cy][cx] = false
             end
 
