@@ -7,7 +7,7 @@ return function(new)
     local elements = {}
 
     local frame = new("frame")
-    frame:SetName("Layer {name} Option")
+    frame:SetName("Layer Options")
     frame:SetResizable(false)
     frame:SetDraggable(false)
     frame:ShowCloseButton(false)
@@ -15,6 +15,10 @@ return function(new)
     frame:SetSize(370, 350)
     frame.Update = function(this)
         --this:SetVisible(EditorState.registers.isLevelLoaded)
+
+        if this:GetVisible() and EditorState.registers.isLevelLoaded then
+            this:SetName(string.format("Layer %s Options", EditorState.levelData.layers[EditorState.currentLayer].name))
+        end
     end
     frame:SetPos(shove.getViewportWidth() - (frame:GetWidth() + 10), 40)
 
@@ -64,7 +68,7 @@ return function(new)
         local text = new("text")
         text:SetDefaultColor(1, 1, 1, 1)
         text:SetFont(font)
-        text:SetText(string.format("[%s] %s", idx, layerData.name))
+        text:SetText(layerData.name)
         text:SetParent(panel)
         table.insert(panel.children, text)
         listGrid:AddItem(text, 2, 2, "left")

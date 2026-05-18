@@ -241,7 +241,7 @@ function EditorState:update(elapsed)
         and self.registers.canPlace
         and self.registers.isLevelLoaded
 
-    -- updateing objects behaviours --
+    -- updating objects behaviours --
     for idx, layerData in ipairs(self.levelData.layers) do
         if layerData.type == "objects" and self.registers.updateObjectBehaviour then
             for _, object in ipairs(layerData.data) do
