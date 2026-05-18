@@ -42,7 +42,7 @@ return function(new)
     frame:SetName("Layers")
     frame:SetAlwaysUpdate(true)
     frame.Update = function(this)
-        --this:SetVisible(EditorState.registers.isLevelLoaded)
+        this:SetVisible(EditorState.registers.isLevelLoaded)
     end
     frame:SetPos(shove.getViewportWidth() - (frame:GetWidth() + 10), shove.getViewportHeight() - (frame:GetHeight() + 10))
 
