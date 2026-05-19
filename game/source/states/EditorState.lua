@@ -109,6 +109,7 @@ function EditorState:enter()
     self.tileX, self.tileY = 0, 0
 
     self.currentLayer = 1
+    self.currentObjectID = ""
 
     self.toolState = {
         fillmode = false,
@@ -177,7 +178,7 @@ function EditorState:enter()
     end
 
     -- test to see if all objects from folder are loaded --
-    print(inspect(self.objects["Fish"]()))
+    --print(inspect(self.objects["Fish"]()))
 end
 
 function EditorState:draw()
@@ -327,6 +328,27 @@ function EditorState:mousepressed(x, y, button)
         and not currentSelectedLayer.locked
     then
         -- place objects --
+        local modes = {
+            [1] = function()
+                if self.objects[self.currentObjectID] then
+                    table.insert(currentSelectedLayer.data, self.objects[self.currentObjectID](mx, my))
+                    print(inspect(currentSelectedLayer.data))
+                end
+            end,
+            [2] = function()
+                -- check bounds --
+                for idx, obj in ipairs(currentSelectedLayer.data) do
+                    if collision.pointRect({ x = mx, y = my }, obj.editorDebug.hitbox) then
+                        table.remove(currentSelectedLayer.data, idx)
+                        return
+                    end
+                end
+            end
+        }
+
+        if modes[button] then
+            modes[button]()
+        end
     end
 end
 

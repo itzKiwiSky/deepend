@@ -22,7 +22,7 @@ end
 return function()
     newImage("tiles_border", "game/tilesets/tiles_border.png")
     newImage("tiles_border_shadow", "game/tilesets/tiles_border_shadow.png")
-    newImage("tile_bg", "game/tilesets/block_deco.png")
+    newImage("tile_bg", "game/tilesets/water_caustics_b.png")
 
     newImage("ui_actions_button", "ui/icons_buttons.png")
     newImage("ui_lock", "ui/lock.png")

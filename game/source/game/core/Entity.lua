@@ -3,10 +3,12 @@ return function()
         x = x,
         y = y,
         r = 0,
-        sx = 1,
-        sy = 1,
-        ox = 0,
-        oy = 0,
+        scaleX = 1,
+        scaleY = 1,
+        originX = 0,
+        originY = 0,
         isEditorMode = registers.isEditorMode,
+
+        serialize = function() end,
     }
 end

@@ -16,15 +16,15 @@ return function(new)
     end
     frame:SetPos(0, 28)
 
-    local layerList = new("list")
+    local objectList = new("list")
     local offsetY = 28
-    layerList:SetParent(frame)
-    layerList:SetY(layerList:GetY() + offsetY)
-    layerList:SetWidth(frame:GetWidth())
-    layerList:SetHeight(frame:GetHeight() - offsetY)
-    layerList:SetPadding(0)
-    layerList:SetSpacing(5)
-    layerList:SetHover(true)
+    objectList:SetParent(frame)
+    objectList:SetY(objectList:GetY() + offsetY)
+    objectList:SetWidth(frame:GetWidth())
+    objectList:SetHeight(frame:GetHeight() - offsetY)
+    objectList:SetPadding(0)
+    objectList:SetSpacing(5)
+    objectList:SetHover(true)
 
     --local grid = new("grid")
     --grid:SetParent(frame)
@@ -37,6 +37,16 @@ return function(new)
     --grid.drawfunc = shared.blank
 
     local btns = {}
+
+    for name, obj in pairs(EditorState.objects) do
+        local btn = new("button")
+        btn:SetText(name)
+        btn:SetHover(true)
+        btn.OnClick = function(this)
+            EditorState.currentObjectID = name
+        end
+        objectList:AddItem(btn)
+    end
 
     local function createLayerItem(layerData, idx)
         local panel = new("panel")
