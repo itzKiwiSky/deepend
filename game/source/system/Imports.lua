@@ -10,9 +10,10 @@ return function()
     multouch = require 'source.system.libraries.multouch'
     patchy = require 'source.system.libraries.patchy'
     lovezip = require 'source.system.libraries.lovezip'
+    bump = require 'source.system.libraries.bump'
     if love.system.getDeviceType() == "desktop" then
         discordrpc = require 'source.system.libraries.discordRPC'
         https = require 'https'
     end
-    --require 'source.system.libraries.autobatch'
+    require 'source.system.libraries.autobatch'
 end

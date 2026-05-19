@@ -1,24 +1,20 @@
 package.loaded["source.game.utils.Shared"] = nil
 local shared = require 'source.game.utils.Shared'
 
-return function(new)
-    local elements = {}
+local font = assetManager.getFont("pixel_font", 17)
 
+return function(new)
     local frame = new("frame")
-    frame:SetName("Layer Options")
+    frame:SetName("Objects")
     frame:SetResizable(false)
     frame:SetDraggable(false)
     frame:ShowCloseButton(false)
     frame:SetHover(true)
-    frame:SetSize(370, 350)
+    frame:SetSize(250, 350)
     frame.Update = function(this)
         this:SetVisible(EditorState.registers.isLevelLoaded)
-
-        if this:GetVisible() and EditorState.registers.isLevelLoaded then
-            this:SetName(string.format("Layer %s Options", EditorState.levelData.layers[EditorState.currentLayer].name))
-        end
     end
-    frame:SetPos(shove.getViewportWidth() - (frame:GetWidth() + 10), 40)
+    frame:SetPos(0, 28)
 
     local layerList = new("list")
     local offsetY = 28
@@ -30,28 +26,40 @@ return function(new)
     layerList:SetSpacing(5)
     layerList:SetHover(true)
 
+    --local grid = new("grid")
+    --grid:SetParent(frame)
+    --grid:SetY(grid:GetY() + 36)
+    --grid:SetColumns(4)
+    --grid:SetRows(1)
+    --grid:SetItemAutoSize(false)
+    --grid:SetCellPadding(0)
+    --grid:SetCellSize(buttonSize, buttonSize)
+    --grid.drawfunc = shared.blank
+
+    local btns = {}
+
     local function createLayerItem(layerData, idx)
         local panel = new("panel")
-        panel:SetHeight(50)
+        panel:SetHeight(64)
 
-        local button = new("button")
-        button:SetText("")
-        button:SetSize(panel:GetSize())
-        button:SetPos(5, 5)
-        button:SetParent(panel)
-        button:SetHover(true)
-        button.drawfunc = shared.buttonHitbox
-        button:SetProperty("active", idx == EditorState.currentLayer)
-        button.drawfunc = shared.buttonSelectable
-        button.OnClick = function()
+        local clickHitbox = new("button")
+        clickHitbox:SetText("")
+        clickHitbox:SetSize(panel:GetSize())
+        clickHitbox:SetPos(5, 5)
+        clickHitbox:SetParent(panel)
+        clickHitbox:SetHover(true)
+        clickHitbox.drawfunc = shared.buttonHitbox
+        clickHitbox:SetProperty("active", idx == EditorState.currentLayer)
+        clickHitbox.drawfunc = shared.buttonSelectable
+        clickHitbox.OnClick = function()
             for i, btn in ipairs(btns) do
                 btn:SetProperty("active", false)
             end
             EditorState.currentLayer = idx
-            button:SetProperty("active", idx == EditorState.currentLayer)
+            clickHitbox:SetProperty("active", idx == EditorState.currentLayer)
         end
-        table.insert(panel.children, button)
-        table.insert(btns, button)
+        table.insert(panel.children, clickHitbox)
+        table.insert(btns, clickHitbox)
 
         local listGrid = new("grid")
         listGrid:SetColumns(10)
@@ -66,10 +74,14 @@ return function(new)
         local text = new("text")
         text:SetDefaultColor(1, 1, 1, 1)
         text:SetFont(font)
-        text:SetText(layerData.name)
+        text:SetText(string.format("[%s] %s", idx, layerData.name))
         text:SetParent(panel)
         table.insert(panel.children, text)
         listGrid:AddItem(text, 2, 2, "left")
+
+        local objectSprite = new("image")
+        objectSprite:SetImage()
+        --listGrid:AddItem(lockIcon, 2, listGrid:GetColumns() - 1, "center")
 
         -- Fix offset
         panel.Update = function(self, dt)
@@ -82,4 +94,10 @@ return function(new)
         layerList:AddItem(panel)
         return panel
     end
+
+    --if EditorState.registers.isLevelLoaded then
+    --    for idx, ly in ipairs(EditorState.levelData.layers) do
+    --        createLayerItem(ly, idx)
+    --    end
+    --end
 end

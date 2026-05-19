@@ -291,7 +291,7 @@ return function(new)
         editorGrid.newGrid(
             tempLevelData.properties.width,
             tempLevelData.properties.height,
-            EditorState.GRID_SIZE
+            SharedConstants.gridSize
         )
 
         -- updat sprite batches --

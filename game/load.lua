@@ -27,6 +27,14 @@ return function()
     newImage("ui_actions_button", "ui/icons_buttons.png")
     newImage("ui_lock", "ui/lock.png")
 
+    -- props --
+    newImage("ent_fish", "game/props/gamerfish.png")
+    newImage("ent_bomb", "game/props/bomb.png")
+    newImage("ent_geiser", "game/props/geiser.png")
+    newImage("ent_pufferfish", "game/props/pufferfish.png")
+    newImage("ent_bomb_chain", "game/props/chain_bomb.png")
+    newImage("ent_pearl", "game/props/pearl.png")
+
     newFont("pixel_font", "pixel_font.ttf")
     newFont("pixel_font_bold", "pixel_font_bold.ttf")
 end

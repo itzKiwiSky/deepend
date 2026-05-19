@@ -6,8 +6,6 @@ local LevelDataUtils = require 'source.game.editor.LevelDataUtils'
 local layerUtils = require 'source.game.editor.LayerUtils'
 local layer = require 'source.game.editor.Layer'
 
-EditorState.GRID_SIZE = 96
-
 local editorGrid = require 'source.game.editor.LevelGrid'
 
 ---Used to fill a area of a grid
@@ -57,7 +55,7 @@ function EditorState:updateBatches(currentSelectedLayer)
             for x = 1, currentSelectedLayer.w, 1 do
                 local currentTile = currentSelectedLayer.data[y][x]
                 if currentTile then
-                    local tx, ty = x * EditorState.GRID_SIZE - EditorState.GRID_SIZE, y * EditorState.GRID_SIZE - EditorState.GRID_SIZE
+                    local tx, ty = x * SharedConstants.gridSize - SharedConstants.gridSize, y * SharedConstants.gridSize - SharedConstants.gridSize
                     local ct = autoTile.getFrame(currentSelectedLayer, x, y)
 
                     for key, sprbatch in spairs(self.tilesetBatches) do
@@ -74,6 +72,8 @@ function EditorState:updateBatches(currentSelectedLayer)
 end
 
 function EditorState:enter()
+    registers.isEditorMode = true
+
     local img = assetManager.getImage("tiles_border")
     local imgBack = assetManager.getImage("tiles_border_shadow")
 
@@ -116,6 +116,9 @@ function EditorState:enter()
         isObjectMode = false,
     }
 
+    -- store all loaded objects --
+    self.objects = {}
+
     -- store all the spritebatches --
     self.tilesetBatches = {}
     self.tilesetBatches["glow"] = newTilesetData(love.graphics.newSpriteBatch(self.tileBorder.img), {
@@ -146,7 +149,7 @@ function EditorState:enter()
     editorGrid.newGrid(
         self.levelData.properties.width,
         self.levelData.properties.height,
-        EditorState.GRID_SIZE
+        SharedConstants.gridSize
     )
     -- default layers --
     LevelDataUtils.addLayer(self.levelData, layer.new("tiles", "blocks", self.levelData.properties.width, self.levelData.properties.height))
@@ -158,12 +161,23 @@ function EditorState:enter()
     loveView.unloadView()
     loveView.registerLoveframesEvents()
 
-    local base = "source/game/views"
-    local views = fsutil.scanFolder(base)
+    -- preload all object classes --
+    local objFiles = fsutil.scanFolder("source/game/props")
+    for idx, path in ipairs(objFiles) do
+        -- normalize file name before require --
+        local normalizedPath = (path:gsub("/", ".")):gsub(".lua", "")
+        local idxName = (path:match("[^/]+$")):gsub(".lua", "")
+        self.objects[idxName] = require(normalizedPath)
+    end
+
+    local views = fsutil.scanFolder("source/game/views")
 
     for idx, path in ipairs(views) do
         loveView.addView(path)
     end
+
+    -- test to see if all objects from folder are loaded --
+    print(inspect(self.objects["Fish"]()))
 end
 
 function EditorState:draw()
@@ -203,14 +217,14 @@ function EditorState:draw()
         }
 
         love.graphics.setColor(toolTypeColor[self.toolState.isAddingTile and "pencil" or "eraser"])
-        love.graphics.rectangle("line", self.mouseX, self.mouseY, EditorState.GRID_SIZE, EditorState.GRID_SIZE)
+        love.graphics.rectangle("line", self.mouseX, self.mouseY, SharedConstants.gridSize, SharedConstants.gridSize)
         love.graphics.setColor(1, 1, 1, 1)
         love.graphics.setLineWidth(1)
     end
 
     -- map bounds --
     love.graphics.setLineWidth(5)
-    love.graphics.rectangle("line", 0, 0, self.levelData.properties.width * EditorState.GRID_SIZE, self.levelData.properties.height * EditorState.GRID_SIZE)
+    love.graphics.rectangle("line", 0, 0, self.levelData.properties.width * SharedConstants.gridSize, self.levelData.properties.height * SharedConstants.gridSize)
     love.graphics.setLineWidth(1)
     love.graphics.setBlendMode("alpha")
 
@@ -224,8 +238,8 @@ function EditorState:update(elapsed)
 
     -- mouse updates --
     local mx, my = self.editorCam:worldCoords(vx, vy, 0, 0, shove.getViewportWidth(), shove.getViewportHeight())
-    self.mouseX = self.registers.useSnapToGrid and (math.floor(mx / EditorState.GRID_SIZE) * EditorState.GRID_SIZE) or mx
-    self.mouseY = self.registers.useSnapToGrid and (math.floor(my / EditorState.GRID_SIZE) * EditorState.GRID_SIZE) or my
+    self.mouseX = self.registers.useSnapToGrid and (math.floor(mx / SharedConstants.gridSize) * SharedConstants.gridSize) or mx
+    self.mouseY = self.registers.useSnapToGrid and (math.floor(my / SharedConstants.gridSize) * SharedConstants.gridSize) or my
 
     loveView.update(elapsed)
     self.registers.canPlace = not loveframes.GetHover()
@@ -235,9 +249,9 @@ function EditorState:update(elapsed)
     self.editorCam.scale = self.editorCam.scrollZoom
 
     self.mouseUse = self.mouseX >= 0
-        and self.mouseX <= self.levelData.properties.width * EditorState.GRID_SIZE
+        and self.mouseX <= self.levelData.properties.width * SharedConstants.gridSize
         and self.mouseY >= 0
-        and self.mouseY <= self.levelData.properties.height * EditorState.GRID_SIZE
+        and self.mouseY <= self.levelData.properties.height * SharedConstants.gridSize
         and self.registers.canPlace
         and self.registers.isLevelLoaded
 
@@ -254,7 +268,7 @@ function EditorState:update(elapsed)
 
     -- block place --
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
-    local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
+    local cx, cy = math.floor(mx / SharedConstants.gridSize) + 1, math.floor(my / SharedConstants.gridSize) + 1
 
     if not self.toolState.fillmode and currentSelectedLayer.type == "tiles" then
         if love.mouse.isDown(1) and self.mouseUse and not currentSelectedLayer.locked then
@@ -288,22 +302,31 @@ function EditorState:mousepressed(x, y, button)
     local mx, my = self.editorCam:worldCoords(vx, vy, 0, 0, shove.getViewportWidth(), shove.getViewportHeight())
 
     local currentSelectedLayer = self.levelData.layers[self.currentLayer]
-    local cx, cy = math.floor(mx / EditorState.GRID_SIZE) + 1, math.floor(my / EditorState.GRID_SIZE) + 1
+    local cx, cy = math.floor(mx / SharedConstants.gridSize) + 1, math.floor(my / SharedConstants.gridSize) + 1
 
-    if self.toolState.fillmode and self.mouseUse and currentSelectedLayer.type == "tiles" and not currentSelectedLayer.locked then
-        local modes = {
-            [1] = function()
-                floodFill(currentSelectedLayer.data, cx, cy, false, true)
-            end,
-            [2] = function()
-                floodFill(currentSelectedLayer.data, cx, cy, true, false)
+    if self.toolState.fillmode and self.mouseUse then
+        if currentSelectedLayer.type == "tiles" and not currentSelectedLayer.locked then
+            local modes = {
+                [1] = function()
+                    floodFill(currentSelectedLayer.data, cx, cy, false, true)
+                end,
+                [2] = function()
+                    floodFill(currentSelectedLayer.data, cx, cy, true, false)
+                end
+            }
+
+            if modes[button] then
+                modes[button]()
             end
-        }
-
-        if modes[button] then
-            modes[button]()
+            self:updateBatches(currentSelectedLayer)
         end
-        self:updateBatches(currentSelectedLayer)
+    end
+
+    if not self.toolState.fillmode
+        and currentSelectedLayer.type == "objects"
+        and not currentSelectedLayer.locked
+    then
+        -- place objects --
     end
 end
 
@@ -326,6 +349,7 @@ end
 
 function EditorState:leave()
     loveView.unloadView()
+    registers.isEditorMode = false
 end
 
 return EditorState

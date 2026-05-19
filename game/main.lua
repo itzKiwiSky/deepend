@@ -1,5 +1,6 @@
 --require 'source.system.ErrHandler'
 require 'source.system.Run'
+SharedConstants = require 'source.game.SharedConstants'
 local gitstuff = require 'source.system.GitStuff' -- super important stuff --
 assetManager = require 'source.system.AssetManager'
 
