@@ -2,7 +2,7 @@ package.loaded["source.game.utils.Shared"] = nil
 local shared = require 'source.game.utils.Shared'
 
 local buttons = assetManager.getImage("ui_actions_button")
-local buttonQuads = love.graphics.getQuadsFromAtlas(buttons, 8, 1)
+local buttonQuads = love.graphics.getQuadsFromAtlas(buttons, SharedConstants.iconQuadsCount, 1)
 local lockImage = assetManager.getImage("ui_lock")
 local lockQuads = love.graphics.getQuadsFromAtlas(lockImage, 2, 1)
 local buttonSize = 50

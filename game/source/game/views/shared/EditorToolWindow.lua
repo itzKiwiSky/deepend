@@ -3,7 +3,7 @@ local shared = require 'source.game.utils.Shared'
 
 local font = assetManager.getFont("pixel_font", 18)
 local buttons = assetManager.getImage("ui_actions_button")
-local buttonQuads = love.graphics.getQuadsFromAtlas(buttons, 8, 1)
+local buttonQuads = love.graphics.getQuadsFromAtlas(buttons, SharedConstants.iconQuadsCount, 1)
 
 local function newButtonData(spriteIdx, pushable, action)
     return {

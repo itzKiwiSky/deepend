@@ -38,6 +38,19 @@ function Class:implement(...)
     end
 end
 
+function Class:implements(...)
+    for _, interface in pairs({ ... }) do
+        for k, v in pairs(interface) do
+            if type(v) == "function" and k ~= "__construct" and k:sub(1, 2) ~= "__" then
+                assert(self[k] ~= nil,
+                    string.format("'%s' nao implementa '%s' de '%s'",
+                        self.__class, k, interface.__class or "?"))
+            end
+        end
+        self:implement(interface)
+    end
+end
+
 function Class:exclude(...)
     for i = 1, select("#", ...) do
         self[select(i, ...)] = nil

@@ -4,6 +4,9 @@ SharedConstants = require 'source.game.SharedConstants'
 local gitstuff = require 'source.system.GitStuff' -- super important stuff --
 assetManager = require 'source.system.AssetManager'
 
+Components = {}
+Systems = {}
+
 presence = require 'source.system.UpdatePresence'
 local presenceUpdateTimer = 0
 
@@ -37,6 +40,23 @@ function love.initialize()
     local languageManager = require 'source.system.utils.LanguageManager'
 
     local save = require 'source.system.utils.Save'
+
+    local systems = fsutil.scanFolder("source/game/core/systems")
+    local components = fsutil.scanFolder("source/game/core/components")
+
+    for idx, path in ipairs(systems) do
+        local normalizedPath = (path:gsub("/", ".")):gsub(".lua", "")
+        local idxName = (path:match("[^/]+$")):gsub(".lua", "")
+        Systems[idxName] = require(normalizedPath)
+    end
+
+    for idx, path in ipairs(components) do
+        local normalizedPath = (path:gsub("/", ".")):gsub(".lua", "")
+        local idxName = (path:match("[^/]+$")):gsub(".lua", "")
+        Components[idxName] = require(normalizedPath)
+    end
+
+    print(inspect(Components))
 
     love.graphics.setDefaultFilter("nearest", "nearest")
 

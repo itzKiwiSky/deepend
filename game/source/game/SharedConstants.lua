@@ -1,5 +1,6 @@
 local SharedConstants = {
-    gridSize = 96
+    gridSize = 96,
+    iconQuadsCount = 8
 }
 
 return SharedConstants

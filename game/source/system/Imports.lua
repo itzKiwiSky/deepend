@@ -1,4 +1,5 @@
 return function()
+    adorbis = require 'source.system.libraries.adorbis'
     camera = require 'source.system.libraries.camera'
     collision = require 'source.system.libraries.collision'
     flux = require 'source.system.libraries.flux'
