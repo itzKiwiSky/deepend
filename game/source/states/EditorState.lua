@@ -163,13 +163,13 @@ function EditorState:enter()
     loveView.registerLoveframesEvents()
 
     -- preload all object classes --
-    --local objFiles = fsutil.scanFolder("source/game/core/entities")
-    --for idx, path in ipairs(objFiles) do
-    --    -- normalize file name before require --
-    --    local normalizedPath = (path:gsub("/", ".")):gsub(".lua", "")
-    --    local idxName = (path:match("[^/]+$")):gsub(".lua", "")
-    --    self.objects[idxName] = require(normalizedPath)
-    --end
+    local objFiles = fsutil.scanFolder("source/game/props")
+    for idx, path in ipairs(objFiles) do
+        -- normalize file name before require --
+        local normalizedPath = (path:gsub("/", ".")):gsub(".lua", "")
+        local idxName = (path:match("[^/]+$")):gsub(".lua", "")
+        self.objects[idxName] = require(normalizedPath)
+    end
 
     local views = fsutil.scanFolder("source/game/views")
 
@@ -178,7 +178,7 @@ function EditorState:enter()
     end
 
     -- test to see if all objects from folder are loaded --
-    --print(inspect(self.objects["Fish"]()))
+    print(inspect(self.objects))
 end
 
 function EditorState:draw()
@@ -200,10 +200,9 @@ function EditorState:draw()
     for idx, layerData in ipairs(self.levelData.layers) do
         if layerData.type == "objects" then
             for _, object in ipairs(layerData.data) do
-                --if object.draw then
-                --    object:draw()
-                --end
-                self.systems["RenderSystem"].draw()
+                if object.draw then
+                    object:draw()
+                end
             end
         end
     end
@@ -332,7 +331,7 @@ function EditorState:mousepressed(x, y, button)
         local modes = {
             [1] = function()
                 if self.objects[self.currentObjectID] then
-                    table.insert(currentSelectedLayer.data, self.objects[self.currentObjectID](mx, my))
+                    table.insert(currentSelectedLayer.data, self.objects[self.currentObjectID]:new(mx, my))
                     print(inspect(currentSelectedLayer.data))
                 end
             end,

@@ -1,5 +1,4 @@
 fsutil = require 'source.system.utils.FSUtil'
-fontcache = require 'source.system.utils.FontCache'
 shove = require 'source.system.Shove'
 class = require 'source.system.utils.Classic'
 gamestate = require 'source.system.utils.GameState'
@@ -101,15 +100,17 @@ function love.run()
         package.cpath)
     package.cpath = newCPath
 
-    fontcache.init()
     loveView = require 'source.system.utils.LoveView'
-
 
     require('source.system.Imports')()
 
     Controls = baton.new({
         controls = controls,
     })
+    if love.FEATURE_FLAGS.debug then
+        local str = string.format("{bgBrightMagenta}{brightCyan}{bold}[Love.ControlManager]{reset}{brightWhite} : Controls ready{reset}", strName)
+        io.printf(str)
+    end
 
     flux.removeAll()
 

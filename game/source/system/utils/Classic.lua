@@ -59,10 +59,10 @@ end
 
 function Class:is(T)
     local mt = self
-    repeat
-        mt = getmetatable(mt)
+    while mt do
         if mt == T then return true end
-    until mt == nil
+        mt = getmetatable(mt)
+    end
     return false
 end
 

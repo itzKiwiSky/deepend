@@ -1,5 +1,4 @@
 return function()
-    adorbis = require 'source.system.libraries.adorbis'
     camera = require 'source.system.libraries.camera'
     collision = require 'source.system.libraries.collision'
     flux = require 'source.system.libraries.flux'
@@ -16,5 +15,4 @@ return function()
         discordrpc = require 'source.system.libraries.discordRPC'
         https = require 'https'
     end
-    require 'source.system.libraries.autobatch'
 end

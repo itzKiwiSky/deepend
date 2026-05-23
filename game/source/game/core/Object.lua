@@ -7,4 +7,12 @@ function Object:__construct()
     self.isEditorMode = registers.isEditorMode
 end
 
+function Object:draw()
+
+end
+
+function Object:update(elapsed)
+
+end
+
 return Object
